@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaUser, FaUserGraduate, FaFilter, FaSearch, FaGraduationCap, FaBed, FaUniversity, FaPhone } from 'react-icons/fa';
 
 // Composants
@@ -14,6 +14,10 @@ import DetailEtudiant from '../components/etudiants/DetailEtudiant';
 import FormulaireEtudiant from '../components/etudiants/FormulaireEtudiant';
 import StatistiquesEtudiant from '../components/etudiants/StatistiquesEtudiant';
 
+// Services
+import etudiantService from '../services/etudiantService';
+import chambreService from '../services/chambreService';
+
 // Hooks
 import useDonnees from '../hooks/useDonnees';
 import useTri from '../hooks/useTri';
@@ -22,33 +26,7 @@ import useTri from '../hooks/useTri';
 import { colors } from '../styles/theme';
 
 function EtudiantPage() {
-  // Données simulées pour les étudiants selon la structure correcte de la table
-  const mockEtudiants = [
-    { n_etudiant: "ETU001", nom: "Dupont", prenom: "Jean", univ: "Université Paris 1", niveau: "L3", contact: "0612345678", n_chambre: "A101" },
-    { n_etudiant: "ETU002", nom: "Martin", prenom: "Sophie", univ: "Université Lyon 2", niveau: "M1", contact: "0623456789", n_chambre: "B201" },
-    { n_etudiant: "ETU003", nom: "Bernard", prenom: "Thomas", univ: "Université Paris 1", niveau: "L2", contact: "0634567890", n_chambre: null },
-    { n_etudiant: "ETU004", nom: "Petit", prenom: "Emma", univ: "Université Bordeaux", niveau: "M2", contact: "0645678901", n_chambre: "C301" },
-    { n_etudiant: "ETU005", nom: "Robert", prenom: "Lucas", univ: "Université Lyon 2", niveau: "L1", contact: "0656789012", n_chambre: null },
-    { n_etudiant: "ETU006", nom: "Richard", prenom: "Chloé", univ: "Université Paris 1", niveau: "L3", contact: "0667890123", n_chambre: "A102" },
-    { n_etudiant: "ETU007", nom: "Moreau", prenom: "Hugo", univ: "Université Bordeaux", niveau: "D1", contact: "0678901234", n_chambre: null },
-    { n_etudiant: "ETU008", nom: "Simon", prenom: "Léa", univ: "Université Lyon 2", niveau: "M1", contact: "0689012345", n_chambre: "B202" },
-    { n_etudiant: "ETU009", nom: "Laurent", prenom: "Nathan", univ: "Université Paris 1", niveau: "L2", contact: "0690123456", n_chambre: null },
-    { n_etudiant: "ETU010", nom: "Michel", prenom: "Camille", univ: "Université Bordeaux", niveau: "M2", contact: "0601234567", n_chambre: "C302" },
-  ];
-
-  // Données simulées pour les chambres
-  const mockChambres = [
-    { n_chambre: "A101", capacite_max: 2, etat_chambre: "Occupée", n_bat: 1 },
-    { n_chambre: "A102", capacite_max: 1, etat_chambre: "Occupée", n_bat: 1 },
-    { n_chambre: "B201", capacite_max: 3, etat_chambre: "Occupée", n_bat: 2 },
-    { n_chambre: "B202", capacite_max: 1, etat_chambre: "Occupée", n_bat: 2 },
-    { n_chambre: "C301", capacite_max: 2, etat_chambre: "Occupée", n_bat: 3 },
-    { n_chambre: "C302", capacite_max: 2, etat_chambre: "Occupée", n_bat: 3 },
-    { n_chambre: "D101", capacite_max: 4, etat_chambre: "Disponible", n_bat: 4 },
-    { n_chambre: "D102", capacite_max: 1, etat_chambre: "Disponible", n_bat: 4 },
-  ];
-  
-  // Utilisation des hooks personnalisés
+  // Utilisation des hooks personnalisés avec les services API
   const { 
     donnees: etudiants, 
     setDonnees: setEtudiants, 
@@ -58,12 +36,53 @@ function EtudiantPage() {
     ajouterElement,
     modifierElement,
     supprimerElement
-  } = useDonnees(mockEtudiants);
+  } = useDonnees(
+    [], // Commencer avec un tableau vide
+    etudiantService.getAllEtudiants, // Fonction pour récupérer les données
+    etudiantService.createEtudiant,   // Fonction pour ajouter
+    etudiantService.updateEtudiant,   // Fonction pour modifier
+    etudiantService.deleteEtudiant    // Fonction pour supprimer
+  );
   
-  const { 
-    donnees: chambres 
-  } = useDonnees(mockChambres);
+  // État pour les chambres
+  const [chambres, setChambres] = useState([]);
+  const [loadingChambres, setLoadingChambres] = useState(true);
   
+  // Charger les chambres au chargement du composant
+  useEffect(() => {
+    const fetchChambres = async () => {
+      try {
+        setLoadingChambres(true);
+        // Essayer de charger depuis l'API
+        try {
+          const data = await chambreService.getAllChambres();
+          setChambres(data);
+        } catch (apiError) {
+          console.warn("API des chambres non disponible, utilisation de données simulées");
+          // Utiliser des données simulées si l'API n'est pas disponible
+          const mockChambres = [
+            { n_chambre: "A101", capacite_max: 2, etat_chambre: "Occupée", n_bat: 1 },
+            { n_chambre: "A102", capacite_max: 1, etat_chambre: "Occupée", n_bat: 1 },
+            { n_chambre: "B201", capacite_max: 3, etat_chambre: "Occupée", n_bat: 2 },
+            { n_chambre: "B202", capacite_max: 1, etat_chambre: "Occupée", n_bat: 2 },
+            { n_chambre: "C301", capacite_max: 2, etat_chambre: "Occupée", n_bat: 3 },
+            { n_chambre: "C302", capacite_max: 2, etat_chambre: "Occupée", n_bat: 3 },
+            { n_chambre: "D101", capacite_max: 4, etat_chambre: "Disponible", n_bat: 4 },
+            { n_chambre: "D102", capacite_max: 1, etat_chambre: "Disponible", n_bat: 4 },
+          ];
+          setChambres(mockChambres);
+        }
+      } catch (err) {
+        console.error("Erreur lors du chargement des chambres:", err);
+        setChambres([]);
+      } finally {
+        setLoadingChambres(false);
+      }
+    };
+    
+    fetchChambres();
+  }, []);
+
   const { trierDonnees } = useTri(etudiants, setEtudiants);
   
   // États locaux
@@ -72,7 +91,6 @@ function EtudiantPage() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [formMode, setFormMode] = useState('add'); // 'add' ou 'edit'
   const [formData, setFormData] = useState({
-    n_etudiant: '',
     nom: '',
     prenom: '',
     univ: '',
@@ -106,7 +124,7 @@ function EtudiantPage() {
     const matchesSearch = searchTerm === '' || 
       etudiant.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       etudiant.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      etudiant.n_etudiant.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (etudiant.n_etudiant && etudiant.n_etudiant.toString().includes(searchTerm)) ||
       (etudiant.contact && etudiant.contact.includes(searchTerm));
   
     return matchesUniv && matchesNiveau && matchesChambre && matchesSearch;
@@ -123,7 +141,6 @@ function EtudiantPage() {
 
   const handleAdd = () => {
     setFormData({
-      n_etudiant: '',
       nom: '',
       prenom: '',
       univ: '',
@@ -152,7 +169,7 @@ function EtudiantPage() {
   const handleDelete = async (n_etudiant) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet étudiant?')) {
       try {
-        supprimerElement(n_etudiant, 'n_etudiant');
+        await supprimerElement(n_etudiant, 'n_etudiant');
       } catch (err) {
         setError('Erreur lors de la suppression');
         console.error('Erreur:', err);
@@ -171,15 +188,30 @@ function EtudiantPage() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Créer une copie des données
+      const dataToSubmit = { ...formData };
+      
+      // Si en mode ajout, supprimer explicitement n_etudiant
+      if (formMode === 'add' && 'n_etudiant' in dataToSubmit) {
+        delete dataToSubmit.n_etudiant;
+      }
+      
+      // Convertir n_chambre vide en null
+      if (dataToSubmit.n_chambre === '') {
+        dataToSubmit.n_chambre = null;
+      }
+      
+      console.log("Données à soumettre:", dataToSubmit);
+      
       if (formMode === 'add') {
-        ajouterElement(formData);
+        await ajouterElement(dataToSubmit);
       } else {
-        modifierElement(formData.n_etudiant, 'n_etudiant', formData);
+        await modifierElement(formData.n_etudiant, 'n_etudiant', dataToSubmit);
       }
       setShowFormModal(false);
     } catch (err) {
       setError(`Erreur lors de l'${formMode === 'add' ? 'ajout' : 'édition'}`);
-      console.error('Erreur:', err);
+      console.error('Erreur détaillée:', err);
     }
   };
 
@@ -253,7 +285,6 @@ function EtudiantPage() {
       {/* Statistiques */}
       <StatistiquesEtudiant 
         etudiants={etudiants} 
-        universites={universites}
         chambres={chambres}
       />
 
@@ -357,8 +388,7 @@ function EtudiantPage() {
         titre={`Détails de l'étudiant ${selectedEtudiant ? `${selectedEtudiant.prenom} ${selectedEtudiant.nom}` : ''}`}
         contenu={selectedEtudiant && (
           <DetailEtudiant 
-            etudiant={selectedEtudiant} 
-            getChambreName={getChambreName}
+            etudiant={selectedEtudiant}
           />
         )}
         visible={showModal}

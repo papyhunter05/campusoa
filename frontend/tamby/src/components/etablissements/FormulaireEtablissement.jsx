@@ -58,30 +58,38 @@ function FormulaireEtablissement({
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      {formMode === 'add' && (
+      {formMode === 'edit' && (
         <div className="mb-4">
           <label 
             className="flex items-center text-sm font-medium mb-2"
             style={getLabelStyle('n_bat')}
           >
             <FaBuilding className="mr-2" style={getIconStyle('n_bat')} />
-            Identifiant du bâtiment
+            Identifiant du bâtiment (non modifiable)
           </label>
-          <input
-            type="number"
-            name="n_bat"
-            value={formData.n_bat}
-            onChange={onChange}
-            onFocus={() => handleFocus('n_bat')}
-            onBlur={handleBlur}
-            className="w-full p-3 border rounded-md focus:outline-none transition-all duration-200"
-            style={getFieldStyle('n_bat')}
-            required
-            min="1"
-            placeholder="Ex: 1"
-          />
+          <div className="relative">
+            <input
+              type="number"
+              name="n_bat"
+              value={formData.n_bat}
+              disabled={true}
+              className="w-full p-3 border rounded-md bg-gray-200 text-gray-600 cursor-not-allowed"
+              style={{
+                ...getFieldStyle('n_bat'), 
+                opacity: 0.7,
+                borderColor: '#d1d5db',
+                boxShadow: 'none'
+              }}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          </div>
         </div>
       )}
+
       
       <div className="mb-4">
         <label 

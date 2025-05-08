@@ -58,33 +58,34 @@ function FormulaireChambre({
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div className="mb-4">
-        <label 
-          className="flex items-center text-sm font-medium mb-2"
-          style={getLabelStyle('n_chambre')}
-        >
-          <FaBed className="mr-2" style={getIconStyle('n_chambre')} />
-          Numéro de chambre
-        </label>
-        <input
-          type="text"
-          name="n_chambre"
-          value={formData.n_chambre}
-          onChange={onChange}
-          onFocus={() => handleFocus('n_chambre')}
-          onBlur={handleBlur}
-          disabled={formMode === 'edit'}
-          className="w-full p-3 border rounded-md focus:outline-none transition-all duration-200"
-          style={getFieldStyle('n_chambre')}
-          required
-          placeholder="Ex: A101"
-        />
-        {formMode === 'edit' && (
-          <p className="text-xs mt-1" style={{ color: colors.textLight }}>
-            Le numéro de chambre ne peut pas être modifié
+      {/* Afficher le numéro de chambre uniquement en mode édition */}
+      {formMode === 'edit' && (
+        <div className="mb-4">
+          <label 
+            className="flex items-center text-sm font-medium mb-2"
+            style={getLabelStyle('n_chambre')}
+          >
+            <FaBed className="mr-2" style={getIconStyle('n_chambre')} />
+            Numéro de chambre
+          </label>
+          <input
+            type="text"
+            name="n_chambre"
+            value={formData.n_chambre || ''}
+            disabled={true}
+            className="w-full p-3 border rounded-md bg-gray-200 text-gray-600 cursor-not-allowed"
+            style={{
+              ...getFieldStyle('n_chambre'), 
+              opacity: 0.7,
+              borderColor: '#d1d5db',
+              boxShadow: 'none'
+            }}
+          />
+          <p className="mt-1 text-sm text-gray-500 italic">
+            Le numéro de chambre est une valeur unique qui ne peut pas être modifiée
           </p>
-        )}
-      </div>
+        </div>
+      )}
       
       <div className="mb-4">
         <label 
@@ -96,7 +97,7 @@ function FormulaireChambre({
         </label>
         <select
           name="n_bat"
-          value={formData.n_bat}
+          value={formData.n_bat || ''}
           onChange={onChange}
           onFocus={() => handleFocus('n_bat')}
           onBlur={handleBlur}
@@ -113,12 +114,13 @@ function FormulaireChambre({
         >
           <option value="">Sélectionnez un bâtiment</option>
           {batiments.map((bat) => (
-            <option key={bat.n_bat} value={bat.n_bat}>
-              {bat.nom_bat || `Bâtiment ${bat.n_bat}`}
+            <option key={bat.n_bat} value={bat.n_bat.toString()}>
+            {bat.nom_bat || `Bâtiment ${bat.n_bat}`}
             </option>
           ))}
         </select>
       </div>
+
       
       <div className="mb-4">
         <label 
@@ -222,8 +224,7 @@ function FormulaireChambre({
         </button>
       </div>
     </form>
-  
-);
+  );
 }
 
 export default FormulaireChambre;

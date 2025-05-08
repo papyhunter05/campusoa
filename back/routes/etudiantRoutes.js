@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const etudiantController = require('../controllers/etudiantController');
 
-router.get('/', etudiantController.getAllEtudiants); // afficher etudiant
-router.get('/:id', etudiantController.getEtudiantById); // rechercher un etudiant
-router.post('/', etudiantController.createEtudiant); // ajout etudiant
-router.put('/:id', etudiantController.updateEtudiant); // modifier etudiant
-router.delete('/:id', etudiantController.deleteEtudiant); // supprimenr etudiant
+// Routes pour les étudiants
+router.get('/', etudiantController.getAllEtudiants);
+router.get('/:id', etudiantController.getEtudiantById);
+router.post('/', etudiantController.createEtudiant);
+router.put('/:id', etudiantController.updateEtudiant);
+router.delete('/:id', etudiantController.deleteEtudiant);
 
 module.exports = router;

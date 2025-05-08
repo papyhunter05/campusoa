@@ -3,8 +3,10 @@ import { FaBuilding, FaBed, FaClipboardCheck } from 'react-icons/fa';
 import { colors } from '../../styles/theme';
 
 function DetailEtablissement({ etablissement }) {
+  console.log("Établissement reçu dans DetailEtablissement:", etablissement);
   return (
     <div className="space-y-4">
+
       <div className="flex items-center p-3 rounded-lg" style={{ backgroundColor: colors.highlightColor }}>
         <FaBuilding className="text-xl mr-3" style={{ color: colors.primaryColor }} />
         <h3 className="text-lg font-semibold" style={{ color: colors.complementaryColor }}>

@@ -1,11 +1,18 @@
 const db = require('../db/cite');
 
 exports.getAllChambres = (req, res) => {
-  db.query('SELECT * FROM chambre', (err, results) => {
+  const query = `
+    SELECT c.*, b.nom_bat 
+    FROM chambre c
+    LEFT JOIN batiment b ON c.n_bat = b.n_bat
+  `;
+  
+  db.query(query, (err, results) => {
     if (err) return res.status(500).send(err);
     res.json(results);
   });
 };
+
 
 exports.getChambreById = (req, res) => {
   const { id } = req.params;
@@ -22,6 +29,7 @@ exports.createChambre = (req, res) => {
     res.status(201).json({ id: results.insertId });
   });
 };
+
 
 exports.updateChambre = (req, res) => {
   const { id } = req.params;

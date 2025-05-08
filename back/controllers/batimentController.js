@@ -16,12 +16,48 @@ exports.getBatimentById = (req, res) => {
 };
 
 exports.createBatiment = (req, res) => {
-  const data = req.body;
-  db.query('INSERT INTO batiment SET ?', data, (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.status(201).json({ id: results.insertId });
-  });
+  try {
+    const data = { ...req.body };
+    console.log("Données reçues:", data);
+    
+    // Validation des données
+    if (!data.nom_bat) {
+      return res.status(400).json({ message: "Le nom du bâtiment est requis" });
+    }
+    
+    if (!data.nb_chambre || isNaN(data.nb_chambre)) {
+      return res.status(400).json({ message: "Le nombre de chambres doit être un nombre valide" });
+    }
+    
+    if (!data.etat_bat) {
+      return res.status(400).json({ message: "L'état du bâtiment est requis" });
+    }
+    
+    // Supprimer l'ID s'il est fourni pour laisser la base de données le générer
+    delete data.n_bat;
+    
+    db.query('INSERT INTO batiment SET ?', data, (err, results) => {
+      if (err) {
+        console.error("Erreur SQL:", err);
+        return res.status(500).json({ message: "Erreur lors de l'insertion dans la base de données", error: err.message });
+      }
+      
+      // Récupérer le bâtiment nouvellement créé
+      db.query('SELECT * FROM batiment WHERE n_bat = ?', [results.insertId], (err, batiment) => {
+        if (err) {
+          console.error("Erreur SQL lors de la récupération:", err);
+          return res.status(500).json({ message: "Bâtiment créé mais erreur lors de la récupération", id: results.insertId });
+        }
+        res.status(201).json(batiment[0] || { id: results.insertId });
+      });
+    });
+  } catch (error) {
+    console.error("Erreur générale:", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
 };
+
+
 
 exports.updateBatiment = (req, res) => {
   const { id } = req.params;
