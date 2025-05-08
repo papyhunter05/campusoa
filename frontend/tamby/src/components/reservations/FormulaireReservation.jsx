@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FaCalendarAlt, FaBed, FaUserGraduate } from 'react-icons/fa';
 import { colors } from '../../styles/theme';
 
@@ -11,15 +11,58 @@ function FormulaireReservation({
   chambres,
   getEtudiantName
 }) {
+  // Logs pour déboguer les données reçues
+  useEffect(() => {
+    console.log("Étudiants reçus dans le formulaire:", etudiants);
+    console.log("Chambres reçues dans le formulaire:", chambres);
+    console.log("formData actuel:", formData);
+  }, [etudiants, chambres, formData]);
+
   // Filtrer les chambres disponibles ou celle déjà réservée par cet étudiant
-  const chambresDisponibles = chambres.filter(c => 
-    c.etat_chambre === "Disponible" || c.n_chambre === formData.n_chambre
-  );
+  // Adaptation pour gérer différentes structures de données possibles
+  const chambresDisponibles = chambres.filter(c => {
+    // Vérifier si la chambre est disponible (différentes propriétés possibles)
+    const estDisponible = 
+      c.etat_chambre === "Disponible" || 
+      c.status === "Available" || 
+      c.etat === "Libre";
+    
+    // Vérifier si c'est la chambre actuellement sélectionnée
+    const estChambreActuelle = 
+      c.n_chambre === formData.n_chambre || 
+      c.id_chambre === formData.n_chambre || 
+      c.numero === formData.n_chambre;
+    
+    return estDisponible || estChambreActuelle;
+  });
   
   // Filtrer les étudiants sans chambre ou celui déjà associé à cette réservation
-  const etudiantsDisponibles = etudiants.filter(e => 
-    !e.n_chambre || e.n_etudiant === formData.n_etudiant
-  );
+  // Adaptation pour gérer différentes structures de données possibles
+  const etudiantsDisponibles = etudiants.filter(e => {
+    // Vérifier si l'étudiant n'a pas de chambre
+    const sansChambre = 
+      !e.n_chambre || 
+      e.n_chambre === null || 
+      e.n_chambre === "";
+    
+    // Vérifier si c'est l'étudiant actuellement sélectionné
+    const estEtudiantActuel = 
+      e.n_etudiant === formData.n_etudiant || 
+      e.id_etudiant === formData.n_etudiant || 
+      e.id === formData.n_etudiant;
+    
+    return sansChambre || estEtudiantActuel;
+  });
+
+  // Fonction pour obtenir l'ID de la chambre selon la structure des données
+  const getChambreId = (chambre) => {
+    return chambre.n_chambre || chambre.id_chambre || chambre.numero;
+  };
+
+  // Fonction pour obtenir l'ID de l'étudiant selon la structure des données
+  const getEtudiantId = (etudiant) => {
+    return etudiant.n_etudiant || etudiant.id_etudiant || etudiant.id;
+  };
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -82,8 +125,8 @@ function FormulaireReservation({
         >
           <option value="">Sélectionnez un étudiant</option>
           {etudiantsDisponibles.map((etudiant) => (
-            <option key={etudiant.n_etudiant} value={etudiant.n_etudiant}>
-              {getEtudiantName(etudiant.n_etudiant)}
+            <option key={getEtudiantId(etudiant)} value={getEtudiantId(etudiant)}>
+              {getEtudiantName(getEtudiantId(etudiant))}
             </option>
           ))}
         </select>
@@ -112,11 +155,15 @@ function FormulaireReservation({
           required
         >
           <option value="">Sélectionnez une chambre</option>
-          {chambresDisponibles.map((chambre) => (
-            <option key={chambre.n_chambre} value={chambre.n_chambre}>
-              {chambre.n_chambre} - {chambre.capacite_max} personne(s)
-            </option>
-          ))}
+          {chambresDisponibles.map((chambre) => {
+            const chambreId = getChambreId(chambre);
+            const capacite = chambre.capacite_max || chambre.capacite || 1;
+            return (
+              <option key={chambreId} value={chambreId}>
+                {chambreId} - {capacite} personne(s)
+              </option>
+            );
+          })}
         </select>
         {chambresDisponibles.length === 0 && (
           <p className="text-xs mt-1 text-red-500">

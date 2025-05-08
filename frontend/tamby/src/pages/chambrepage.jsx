@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { FaBuilding, FaBed, FaFilter, FaSearch, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
+import React, { useState, useCallback, useEffect } from 'react';
 
 // Composants
 import Tableau from '../components/communs/Tableau';
@@ -13,6 +13,11 @@ import DetailChambre from '../components/chambres/DetailChambre';
 import FormulaireChambre from '../components/chambres/FormulaireChambre';
 import PageHeader from '../components/communs/PageHeader';
 import StatistiquesChambre from '../components/chambres/StatistiquesChambre';
+
+// Services
+import chambreService from '../services/chambreService';
+import batimentService from '../services/batimentService';
+
 // Hooks
 import useDonnees from '../hooks/useDonnees';
 import useTri from '../hooks/useTri';
@@ -21,49 +26,6 @@ import useTri from '../hooks/useTri';
 import { colors } from '../styles/theme';
 
 function ChambrePage() {
-  // Données simulées pour les chambres
-  const mockChambres = [
-    { n_chambre: "A101", capacite_max: 2, etat_chambre: "Disponible", n_bat: 1 },
-    { n_chambre: "A102", capacite_max: 1, etat_chambre: "Occupée", n_bat: 1 },
-    { n_chambre: "A103", capacite_max: 2, etat_chambre: "En rénovation", n_bat: 1 },
-    { n_chambre: "B201", capacite_max: 3, etat_chambre: "Disponible", n_bat: 2 },
-    { n_chambre: "B202", capacite_max: 1, etat_chambre: "Occupée", n_bat: 2 },
-    { n_chambre: "C301", capacite_max: 2, etat_chambre: "Hors service", n_bat: 3 },
-    { n_chambre: "C302", capacite_max: 2, etat_chambre: "Disponible", n_bat: 3 },
-    { n_chambre: "D101", capacite_max: 4, etat_chambre: "Occupée", n_bat: 4 },
-    { n_chambre: "D102", capacite_max: 1, etat_chambre: "Disponible", n_bat: 4 },
-    { n_chambre: "E201", capacite_max: 2, etat_chambre: "En rénovation", n_bat: 5 },
-  ];
-
-  // Données simulées pour les bâtiments
-  const mockBatiments = [
-    { n_bat: 1, nom_bat: "Résidence Alpha" },
-    { n_bat: 2, nom_bat: "Résidence Beta" },
-    { n_bat: 3, nom_bat: "Résidence Gamma" },
-    { n_bat: 4, nom_bat: "Résidence Delta" },
-    { n_bat: 5, nom_bat: "Résidence Epsilon" },
-  ];
-  
-  const etatsChambres = ["Disponible", "Occupée", "En rénovation", "Hors service"];
-  
-  // Utilisation des hooks personnalisés
-  const { 
-    donnees: chambres, 
-    setDonnees: setChambres, 
-    loading, 
-    error, 
-    setError,
-    ajouterElement,
-    modifierElement,
-    supprimerElement
-  } = useDonnees(mockChambres);
-  
-  const { 
-    donnees: batiments 
-  } = useDonnees(mockBatiments);
-  
-  const { trierDonnees } = useTri(chambres, setChambres);
-  
   // États locaux
   const [selectedChambre, setSelectedChambre] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -82,18 +44,50 @@ function ChambrePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchCapacite, setSearchCapacite] = useState('');
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  
+  const etatsChambres = ["Disponible", "Occupée", "En rénovation", "Hors service"];
+  
+  // Fonctions de récupération des données
+  const fetchChambres = useCallback(() => chambreService.getAllChambres(), []);
+  const fetchBatiments = useCallback(() => batimentService.getAllBatiments(), []);
+  
+  // Utilisation des hooks personnalisés avec les fonctions API
+  const { 
+    donnees: chambres, 
+    setDonnees: setChambres,
+    loading, 
+    error, 
+    setError,
+    ajouterElement,
+    modifierElement,
+    supprimerElement
+  } = useDonnees([], fetchChambres);
+  
+  const { 
+    donnees: batiments,
+    loading: loadingBatiments,
+    error: errorBatiments
+  } = useDonnees([], fetchBatiments);
+  
+  const { trierDonnees } = useTri(chambres);
 
+  useEffect(() => {
+    if (batiments.length > 0) {
+      console.log('Bâtiments chargés:', batiments);
+    }
+  }, [batiments]);
+  
   // Fonction de filtrage pour les chambres
   const filtrerChambres = (chambre) => {
     // Filtrage par critères de base (bâtiment et état)
     const matchesBasicFilters = (
-      (filterCriteria.n_bat === '' || chambre.n_bat.toString() === filterCriteria.n_bat) &&
+      (filterCriteria.n_bat === '' || chambre.n_bat?.toString() === filterCriteria.n_bat) &&
       (filterCriteria.etat_chambre === '' || chambre.etat_chambre === filterCriteria.etat_chambre)
     );
   
     // Recherche par numéro de chambre
     const matchesSearch = searchTerm === '' || 
-      chambre.n_chambre.toLowerCase().includes(searchTerm.toLowerCase());
+      chambre.n_chambre?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Recherche par capacité
     const matchesCapacite = searchCapacite === '' || 
@@ -116,7 +110,7 @@ function ChambrePage() {
       n_chambre: '',
       capacite_max: 1,
       etat_chambre: 'Disponible',
-      n_bat: ''
+      n_bat: batiments.length > 0 ? batiments[0].n_bat : ''
     });
     setFormMode('add');
     setShowFormModal(true);
@@ -124,6 +118,7 @@ function ChambrePage() {
 
   const handleEdit = (chambre) => {
     setFormData({
+      id_chambre: chambre.id_chambre,
       n_chambre: chambre.n_chambre,
       capacite_max: chambre.capacite_max,
       etat_chambre: chambre.etat_chambre,
@@ -133,10 +128,10 @@ function ChambrePage() {
     setShowFormModal(true);
   };
 
-  const handleDelete = async (n_chambre) => {
+  const handleDelete = async (id_chambre) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette chambre?')) {
       try {
-        supprimerElement(n_chambre, 'n_chambre');
+        await supprimerElement(id_chambre, 'id_chambre', chambreService.delete);
       } catch (err) {
         setError('Erreur lors de la suppression');
         console.error('Erreur:', err);
@@ -148,7 +143,7 @@ function ChambrePage() {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'capacite_max' ? parseInt(value, 10) : value
+      [name]: name === 'capacite_max' || name === 'n_bat' ? parseInt(value, 10) : value
     });
   };
 
@@ -156,17 +151,61 @@ function ChambrePage() {
     e.preventDefault();
     try {
       if (formMode === 'add') {
-        ajouterElement(formData);
+        // Assurez-vous que n_bat est un nombre
+        const chambreToAdd = { 
+          ...formData,
+          n_bat: parseInt(formData.n_bat, 10) || null
+        };
+        
+        console.log('Données à envoyer:', chambreToAdd);
+        
+        const dataToSubmit = { ...formData };
+        // Si vous avez besoin de supprimer certaines propriétés
+        if (formMode === 'add' && 'n_chambre' in dataToSubmit) {
+          delete dataToSubmit.n_chambre;
+        }
+        
+        // Appeler l'API pour créer la chambre
+        const result = await chambreService.createChambre(dataToSubmit);
+
+
+        
+        console.log('Résultat de la création:', result);
+        
+        // Créer un objet complet avec l'ID retourné et les données du formulaire
+        const nouvelleChambre = {
+          ...chambreToAdd,
+          id_chambre: result.id || result.insertId
+        };
+        
+        console.log('Nouvelle chambre à ajouter à l\'état:', nouvelleChambre);
+        
+        // Mettre à jour l'état local avec la nouvelle chambre
+        setChambres(prevChambres => [...prevChambres, nouvelleChambre]);
       } else {
-        modifierElement(formData.n_chambre, 'n_chambre', formData);
+        // Pour la modification, assurez-vous aussi que n_bat est un nombre
+        const chambreToUpdate = {
+          ...formData,
+          n_bat: parseInt(formData.n_bat, 10) || null
+        };
+        
+        await chambreService.update(chambreToUpdate.id_chambre, chambreToUpdate);
+        
+        // Mettre à jour l'état local
+        setChambres(prevChambres => 
+          prevChambres.map(chambre => 
+            chambre.id_chambre === chambreToUpdate.id_chambre ? chambreToUpdate : chambre
+          )
+        );
       }
+      
       setShowFormModal(false);
     } catch (err) {
       setError(`Erreur lors de l'${formMode === 'add' ? 'ajout' : 'édition'}`);
       console.error('Erreur:', err);
     }
   };
-
+    
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
@@ -187,11 +226,31 @@ function ChambrePage() {
     });
   };
 
-  // Fonction pour obtenir le nom du bâtiment à partir de son ID
   const getBatimentName = (n_bat) => {
-    const batiment = batiments.find(b => b.n_bat === n_bat);
+    if (n_bat === undefined || n_bat === null) return 'Bâtiment non spécifié';
+    
+    // Convertir n_bat en nombre si c'est une chaîne
+    const batId = typeof n_bat === 'string' ? parseInt(n_bat, 10) : n_bat;
+    
+     // Vérifier si batiments est chargé
+    if (!batiments || batiments.length === 0) {
+      return `Bâtiment ${n_bat}`;
+    }
+
+    // Rechercher le bâtiment par ID
+  const batiment = batiments.find(b => {
+    // Convertir b.n_bat en nombre pour la comparaison si nécessaire
+    const bId = typeof b.n_bat === 'string' ? parseInt(b.n_bat, 10) : b.n_bat;
+    return bId === batId;
+  });
+    
+    // Ajouter un log pour déboguer
+    console.log('Recherche bâtiment:', { n_bat, batId, trouvé: !!batiment, batiments });
+    
     return batiment ? batiment.nom_bat : `Bâtiment ${n_bat}`;
   };
+
+  
 
   // Définition des colonnes pour le tableau
   const colonnesChambre = [
@@ -200,13 +259,16 @@ function ChambrePage() {
       id: 'n_bat', 
       label: 'Bâtiment', 
       triable: true, 
-      rendu: (chambre) => getBatimentName(chambre.n_bat) 
+      rendu: (chambre) => {
+        console.log('Rendu bâtiment:', chambre);  // Ajoutez cette ligne ici
+        return getBatimentName(chambre.n_bat) 
+      }
     },
     { 
       id: 'capacite_max', 
       label: 'Capacité', 
       triable: true, 
-      rendu: (chambre) => `${chambre.capacite_max} personne(s)` 
+      rendu: (chambre) => `${chambre.capacite_max || 0} personne(s)` 
     },
     { 
       id: 'etat_chambre', 
@@ -218,14 +280,14 @@ function ChambrePage() {
             chambre.etat_chambre === 'Disponible' ? 'bg-green-100 text-green-800' : 
             chambre.etat_chambre === 'En rénovation' ? 'bg-yellow-100 text-yellow-800' :
             'bg-gray-100 text-gray-800'}`}>
-          {chambre.etat_chambre}
+          {chambre.etat_chambre || 'Non défini'}
         </span>
       ) 
     }
   ];
 
   // Extraire les valeurs uniques pour les filtres
-  const capacites = [...new Set(chambres.map(c => c.capacite_max))].sort((a, b) => a - b);
+  const capacites = [...new Set(chambres.map(c => c.capacite_max).filter(Boolean))].sort((a, b) => a - b);
 
   return (
     <div className="p-4">
@@ -323,12 +385,12 @@ function ChambrePage() {
       </FiltresAvances>
 
       {/* Tableau des chambres */}
-      {loading ? (
-        <Chargement message="Chargement des chambres..." />
-      ) : error ? (
+      {loading || loadingBatiments ? (
+        <Chargement message="Chargement des données..." />
+      ) : error || errorBatiments ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">Erreur!</strong>
-          <span className="block sm:inline"> {error}</span>
+          <span className="block sm:inline"> {error || errorBatiments}</span>
         </div>
       ) : (
         <Tableau 
@@ -340,7 +402,7 @@ function ChambrePage() {
             <>
               <BoutonVoir onClick={() => handleView(chambre)} />
               <BoutonModifier onClick={() => handleEdit(chambre)} />
-              <BoutonSupprimer onClick={() => handleDelete(chambre.n_chambre)} />
+              <BoutonSupprimer onClick={() => handleDelete(chambre.id_chambre)} />
             </>
           )}
         />

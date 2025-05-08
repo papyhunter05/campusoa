@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaCalendarAlt, FaFilter, FaSearch, FaEye, FaEdit, FaTrash, FaBed, FaUserGraduate } from 'react-icons/fa';
 
 // Composants
@@ -14,66 +14,19 @@ import DetailReservation from '../components/reservations/DetailReservation';
 import FormulaireReservation from '../components/reservations/FormulaireReservation';
 import StatistiquesReservation from '../components/reservations/StatistiquesReservation';
 
-// Hooks
+// Hooks et services
 import useDonnees from '../hooks/useDonnees';
 import useTri from '../hooks/useTri';
+import reservationService from '../services/reservationService';
+import etudiantService from '../services/etudiantService';
+import chambreService from '../services/chambreService';
+import batimentService from '../services/batimentService';
 
 // Styles
 import { colors } from '../styles/theme';
 
 function ReservationPage() {
-  // Données simulées pour les réservations
-  const mockReservations = [
-    { id_res: 1, date_res: "2023-05-10", n_chambre: "A101", n_etudiant: "ETU001" },
-    { id_res: 2, date_res: "2023-05-15", n_chambre: "B201", n_etudiant: "ETU002" },
-    { id_res: 3, date_res: "2023-06-01", n_chambre: "A102", n_etudiant: "ETU006" },
-    { id_res: 4, date_res: "2023-06-05", n_chambre: "C301", n_etudiant: "ETU004" },
-    { id_res: 5, date_res: "2023-06-10", n_chambre: "B202", n_etudiant: "ETU008" },
-    { id_res: 6, date_res: "2023-06-15", n_chambre: "C302", n_etudiant: "ETU010" },
-    { id_res: 7, date_res: "2023-07-01", n_chambre: "D101", n_etudiant: "ETU003" },
-    { id_res: 8, date_res: "2023-07-05", n_chambre: "D102", n_etudiant: "ETU005" },
-    { id_res: 9, date_res: "2023-07-10", n_chambre: "E201", n_etudiant: "ETU007" },
-    { id_res: 10, date_res: "2023-07-15", n_chambre: "E202", n_etudiant: "ETU009" },
-  ];
-
-  // Données simulées pour les étudiants
-  const mockEtudiants = [
-    { n_etudiant: "ETU001", nom: "Dupont", prenom: "Jean", univ: "Université Paris 1", niveau: "L3", contact: "0612345678", n_chambre: "A101" },
-    { n_etudiant: "ETU002", nom: "Martin", prenom: "Sophie", univ: "Université Lyon 2", niveau: "M1", contact: "0623456789", n_chambre: "B201" },
-    { n_etudiant: "ETU003", nom: "Bernard", prenom: "Thomas", univ: "Université Paris 1", niveau: "L2", contact: "0634567890", n_chambre: "D101" },
-    { n_etudiant: "ETU004", nom: "Petit", prenom: "Emma", univ: "Université Bordeaux", niveau: "M2", contact: "0645678901", n_chambre: "C301" },
-    { n_etudiant: "ETU005", nom: "Robert", prenom: "Lucas", univ: "Université Lyon 2", niveau: "L1", contact: "0656789012", n_chambre: "D102" },
-    { n_etudiant: "ETU006", nom: "Richard", prenom: "Chloé", univ: "Université Paris 1", niveau: "L3", contact: "0667890123", n_chambre: "A102" },
-    { n_etudiant: "ETU007", nom: "Moreau", prenom: "Hugo", univ: "Université Bordeaux", niveau: "D1", contact: "0678901234", n_chambre: "E201" },
-    { n_etudiant: "ETU008", nom: "Simon", prenom: "Léa", univ: "Université Lyon 2", niveau: "M1", contact: "0689012345", n_chambre: "B202" },
-    { n_etudiant: "ETU009", nom: "Laurent", prenom: "Nathan", univ: "Université Paris 1", niveau: "L2", contact: "0690123456", n_chambre: "E202" },
-    { n_etudiant: "ETU010", nom: "Michel", prenom: "Camille", univ: "Université Bordeaux", niveau: "M2", contact: "0601234567", n_chambre: "C302" },
-  ];
-
-  // Données simulées pour les chambres
-  const mockChambres = [
-    { n_chambre: "A101", capacite_max: 2, etat_chambre: "Occupée", n_bat: 1 },
-    { n_chambre: "A102", capacite_max: 1, etat_chambre: "Occupée", n_bat: 1 },
-    { n_chambre: "B201", capacite_max: 3, etat_chambre: "Occupée", n_bat: 2 },
-    { n_chambre: "B202", capacite_max: 1, etat_chambre: "Occupée", n_bat: 2 },
-    { n_chambre: "C301", capacite_max: 2, etat_chambre: "Occupée", n_bat: 3 },
-    { n_chambre: "C302", capacite_max: 2, etat_chambre: "Occupée", n_bat: 3 },
-    { n_chambre: "D101", capacite_max: 4, etat_chambre: "Occupée", n_bat: 4 },
-    { n_chambre: "D102", capacite_max: 1, etat_chambre: "Occupée", n_bat: 4 },
-    { n_chambre: "E201", capacite_max: 2, etat_chambre: "Occupée", n_bat: 5 },
-    { n_chambre: "E202", capacite_max: 2, etat_chambre: "Occupée", n_bat: 5 },
-  ];
-
-  // Données simulées pour les bâtiments
-  const mockBatiments = [
-    { n_bat: 1, nom_bat: "Résidence Alpha" },
-    { n_bat: 2, nom_bat: "Résidence Beta" },
-    { n_bat: 3, nom_bat: "Résidence Gamma" },
-    { n_bat: 4, nom_bat: "Résidence Delta" },
-    { n_bat: 5, nom_bat: "Résidence Epsilon" },
-  ];
-  
-  // Utilisation des hooks personnalisés
+  // Utilisation des hooks personnalisés avec les services API
   const { 
     donnees: reservations, 
     setDonnees: setReservations, 
@@ -83,19 +36,44 @@ function ReservationPage() {
     ajouterElement,
     modifierElement,
     supprimerElement
-  } = useDonnees(mockReservations);
+  } = useDonnees(
+    [], 
+    reservationService.getAllReservations,
+    reservationService.createReservation,
+    reservationService.updateReservation,
+    reservationService.deleteReservation
+  );
   
-  const { 
-    donnees: etudiants 
-  } = useDonnees(mockEtudiants);
+  // États pour les données associées
+  const [etudiants, setEtudiants] = useState([]);
+  const [chambres, setChambres] = useState([]);
+  const [batiments, setBatiments] = useState([]);
+  const [loadingAssociatedData, setLoadingAssociatedData] = useState(true);
   
-  const { 
-    donnees: chambres 
-  } = useDonnees(mockChambres);
-  
-  const { 
-    donnees: batiments 
-  } = useDonnees(mockBatiments);
+  // Charger les données associées au chargement de la page
+  useEffect(() => {
+    const fetchAssociatedData = async () => {
+      try {
+        setLoadingAssociatedData(true);
+        
+        // Utiliser les services API réels
+        const etudiantsData = await etudiantService.getAllEtudiants();
+        const chambresData = await chambreService.getAllChambres();
+        const batimentsData = await batimentService.getAllBatiments();
+        
+        setEtudiants(etudiantsData);
+        setChambres(chambresData);
+        setBatiments(batimentsData);
+      } catch (error) {
+        console.error("Erreur lors du chargement des données associées:", error);
+        setError("Erreur lors du chargement des données associées");
+      } finally {
+        setLoadingAssociatedData(false);
+      }
+    };
+    
+    fetchAssociatedData();
+  }, [setError]);
   
   const { trierDonnees } = useTri(reservations, setReservations);
   
@@ -131,11 +109,12 @@ function ReservationPage() {
     const matchesBatiment = !filterCriteria.n_bat || 
       (chambre && chambre.n_bat.toString() === filterCriteria.n_bat);
     
-    // Recherche par numéro de chambre ou numéro d'étudiant
+    // Recherche par numéro de chambre, numéro d'étudiant ou nom d'étudiant
     const matchesSearch = !searchTerm || 
-      reservation.n_chambre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reservation.n_etudiant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getEtudiantName(reservation.n_etudiant).toLowerCase().includes(searchTerm.toLowerCase());
+      reservation.n_chambre?.toString().includes(searchTerm) ||
+      reservation.n_etudiant?.toString().includes(searchTerm) ||
+      (reservation.nom && reservation.prenom && 
+        `${reservation.nom} ${reservation.prenom}`.toLowerCase().includes(searchTerm.toLowerCase()));
   
     return matchesDateDebut && matchesDateFin && matchesBatiment && matchesSearch;
   };
@@ -150,11 +129,8 @@ function ReservationPage() {
   };
 
   const handleAdd = () => {
-    // Générer un nouvel ID (dans une application réelle, cela serait géré par le backend)
-    const newId = Math.max(...reservations.map(r => r.id_res), 0) + 1;
-    
     setFormData({
-      id_res: newId,
+      id_res: '',
       date_res: new Date().toISOString().split('T')[0],
       n_chambre: '',
       n_etudiant: ''
@@ -177,7 +153,7 @@ function ReservationPage() {
   const handleDelete = async (id_res) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette réservation?')) {
       try {
-        supprimerElement(id_res, 'id_res');
+        await supprimerElement(id_res, 'id_res');
       } catch (err) {
         setError('Erreur lors de la suppression');
         console.error('Erreur:', err);
@@ -189,7 +165,9 @@ function ReservationPage() {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'id_res' ? parseInt(value, 10) : value
+      [name]: name === 'id_res' || name === 'n_chambre' || name === 'n_etudiant' 
+        ? parseInt(value, 10) 
+        : value
     });
   };
 
@@ -197,15 +175,13 @@ function ReservationPage() {
     e.preventDefault();
     try {
       if (formMode === 'add') {
-        ajouterElement({
-          ...formData,
-          id_res: parseInt(formData.id_res, 10)
-        });
+        // Pour l'ajout, on ne passe pas l'id_res car il est auto-incrémenté
+        const dataToSend = { ...formData };
+        if (dataToSend.id_res) delete dataToSend.id_res;
+        
+        await ajouterElement(dataToSend);
       } else {
-        modifierElement(formData.id_res, 'id_res', {
-          ...formData,
-          id_res: parseInt(formData.id_res, 10)
-        });
+        await modifierElement(formData.id_res, 'id_res', formData);
       }
       setShowFormModal(false);
     } catch (err) {
@@ -229,7 +205,7 @@ function ReservationPage() {
   // Fonction pour obtenir le nom de l'étudiant à partir de son ID
   const getEtudiantName = (n_etudiant) => {
     const etudiant = etudiants.find(e => e.n_etudiant === n_etudiant);
-    return etudiant ? `${etudiant.nom} ${etudiant.prenom}` : n_etudiant;
+    return etudiant ? `${etudiant.nom} ${etudiant.prenom}` : `Étudiant #${n_etudiant}`;
   };
 
   // Fonction pour obtenir le nom du bâtiment à partir de l'ID de chambre
@@ -262,8 +238,10 @@ function ReservationPage() {
       triable: true,
       rendu: (reservation) => (
         <div>
-          <div>{reservation.n_chambre}</div>
-          <div className="text-xs text-gray-500">{getBatimentFromChambre(reservation.n_chambre)}</div>
+          <div>Chambre #{reservation.n_chambre}</div>
+          <div className="text-xs text-gray-500">
+            {reservation.nom_bat || getBatimentFromChambre(reservation.n_chambre)}
+          </div>
         </div>
       )
     },
@@ -271,9 +249,18 @@ function ReservationPage() {
       id: 'n_etudiant', 
       label: 'Étudiant', 
       triable: true,
-      rendu: (reservation) => getEtudiantName(reservation.n_etudiant)
+      rendu: (reservation) => (
+        reservation.nom && reservation.prenom 
+          ? `${reservation.nom} ${reservation.prenom}`
+          : getEtudiantName(reservation.n_etudiant)
+      )
     }
   ];
+
+  // Afficher un chargement si les données associées sont en cours de chargement
+  if (loading || loadingAssociatedData) {
+    return <Chargement message="Chargement des données..." />;
+  }
 
   return (
     <div className="p-4">
@@ -372,10 +359,8 @@ function ReservationPage() {
       </FiltresAvances>
 
       {/* Tableau des réservations */}
-      {loading ? (
-        <Chargement message="Chargement des réservations..." />
-      ) : error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+      {error ? (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-4" role="alert">
           <strong className="font-bold">Erreur!</strong>
           <span className="block sm:inline"> {error}</span>
         </div>
@@ -388,7 +373,7 @@ function ReservationPage() {
           actions={(reservation) => (
             <>
               <BoutonVoir onClick={() => handleView(reservation)} />
-              <BoutonModifier onClick={() => handleEdit(reservation)} />
+              {/*<BoutonModifier onClick={() => handleEdit(reservation)} />*/}
               <BoutonSupprimer onClick={() => handleDelete(reservation.id_res)} />
             </>
           )}

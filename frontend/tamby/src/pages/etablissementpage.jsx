@@ -18,24 +18,14 @@ import StatistiquesEtablissement from '../components/etablissements/Statistiques
 import useDonnees from '../hooks/useDonnees';
 import useTri from '../hooks/useTri';
 
+// Services
+import batimentService from '../services/batimentService';
+
 // Styles
 import { colors } from '../styles/theme';
 
 function EtablissementPage() {
-  // Données simulées pour les établissements
-  const mockEtablissements = [
-    { n_bat: 1, nom_bat: "Résidence Alpha", nb_chambre: 30, etat_bat: "Bon", description: "Bâtiment moderne avec vue sur le parc universitaire." },
-    { n_bat: 2, nom_bat: "Résidence Beta", nb_chambre: 25, etat_bat: "Excellent", description: "Récemment rénové avec des équipements modernes." },
-    { n_bat: 3, nom_bat: "Résidence Gamma", nb_chambre: 40, etat_bat: "Moyen", description: "Bâtiment ancien mais bien entretenu." },
-    { n_bat: 4, nom_bat: "Résidence Delta", nb_chambre: 35, etat_bat: "Bon", description: "Situé près de la bibliothèque universitaire." },
-    { n_bat: 5, nom_bat: "Résidence Epsilon", nb_chambre: 20, etat_bat: "En rénovation", description: "Fermé pour rénovation jusqu'à la prochaine rentrée." },
-    { n_bat: 6, nom_bat: "Résidence Zeta", nb_chambre: 15, etat_bat: "Mauvais", description: "Prévu pour rénovation complète l'année prochaine." },
-    { n_bat: 7, nom_bat: "Résidence Eta", nb_chambre: 45, etat_bat: "Bon", description: "Le plus grand bâtiment du campus." },
-  ];
-  
-  const etatsEtablissement = ["Excellent", "Bon", "Moyen", "Mauvais", "En rénovation"];
-  
-  // Utilisation des hooks personnalisés
+  // Utilisation des hooks personnalisés avec les fonctions API
   const { 
     donnees: etablissements, 
     setDonnees: setEtablissements, 
@@ -45,7 +35,13 @@ function EtablissementPage() {
     ajouterElement,
     modifierElement,
     supprimerElement
-  } = useDonnees(mockEtablissements);
+  } = useDonnees(
+    [], 
+    batimentService.getAllBatiments,
+    batimentService.createBatiment,
+    batimentService.updateBatiment,
+    batimentService.deleteBatiment
+  );
   
   const { trierDonnees } = useTri(etablissements, setEtablissements);
   
@@ -66,6 +62,8 @@ function EtablissementPage() {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [searchCapacite, setSearchCapacite] = useState('');
+
+  const etatsEtablissement = ["Excellent", "Bon", "Moyen", "Mauvais", "En rénovation"];
 
   // Fonction de filtrage pour les établissements
   const filtrerEtablissements = (etablissement) => {
@@ -90,6 +88,7 @@ function EtablissementPage() {
 
   // Gestionnaires d'événements
   const handleView = (etablissement) => {
+    console.log("Données de l'établissement:", etablissement);
     setSelectedEtablissement(etablissement);
     setShowModal(true);
   };
@@ -121,7 +120,7 @@ function EtablissementPage() {
   const handleDelete = async (n_bat) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bâtiment?')) {
       try {
-        supprimerElement(n_bat, 'n_bat');
+        await supprimerElement(n_bat, 'n_bat', batimentService.deleteBatiment);
       } catch (err) {
         setError('Erreur lors de la suppression');
         console.error('Erreur:', err);
@@ -140,17 +139,29 @@ function EtablissementPage() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Créez une copie des données du formulaire pour éviter les problèmes de référence
+      const dataToSubmit = { ...formData };
+      
+      // Si en mode ajout, supprimez explicitement n_bat s'il existe
+      if (formMode === 'add' && 'n_bat' in dataToSubmit) {
+        delete dataToSubmit.n_bat;
+      }
+      
+      console.log("Données à soumettre:", dataToSubmit);
+      
       if (formMode === 'add') {
-        ajouterElement(formData);
+        await ajouterElement(dataToSubmit);
       } else {
-        modifierElement(formData.n_bat, 'n_bat', formData);
+        await modifierElement(formData.n_bat, 'n_bat', formData);
       }
       setShowFormModal(false);
     } catch (err) {
       setError(`Erreur lors de l'${formMode === 'add' ? 'ajout' : 'édition'}`);
-      console.error('Erreur:', err);
+      console.error('Erreur détaillée:', err);
     }
   };
+  
+  
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -295,12 +306,23 @@ function EtablissementPage() {
       )}
 
       {/* Modal de détails */}
-      <ModalDetail 
+      {/*<ModalDetail 
         titre={`Détails du bâtiment ${selectedEtablissement?.nom_bat || ''}`}
         contenu={selectedEtablissement && <DetailEtablissement etablissement={selectedEtablissement} />}
         visible={showModal}
         onFermer={() => setShowModal(false)}
+      />*/}
+      
+      {/* Modal de détails */}
+      <ModalDetail 
+        titre={`Détails du bâtiment ${selectedEtablissement?.nom_bat || ''}`}
+        contenu={selectedEtablissement ? <DetailEtablissement etablissement={selectedEtablissement} /> : <div>Aucun établissement sélectionné</div>}
+        visible={showModal}
+        onFermer={() => setShowModal(false)}
       />
+
+
+
 
       {/* Modal de formulaire (ajout/édition) */}
       <ModalFormulaire 
